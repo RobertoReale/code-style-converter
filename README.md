@@ -77,10 +77,3 @@ while (x == y) {
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Thanks to all contributors who have helped shape this project
-- Inspired by the need for consistent code formatting in team projects
-
----
