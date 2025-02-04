@@ -165,9 +165,10 @@ class StyleConverterGUI:
         
         tk.Label(main_frame, text="Output Code:").pack(anchor=tk.W)
         
+        # Create output text widget with state='disabled' to make it read-only
         self.output_text = scrolledtext.ScrolledText(
             main_frame, width=80, height=15, wrap=tk.NONE,
-            font=('Courier', 10)
+            font=('Courier', 10), state='disabled'
         )
         self.output_text.pack(fill=tk.BOTH, expand=True)
         
@@ -180,13 +181,19 @@ class StyleConverterGUI:
         self.root.bind('<Control-m>', lambda e: self.remove_multi_comments())
         self.root.bind('<Control-r>', lambda e: self.remove_all_comments())
     
+    def set_output_text(self, text: str):
+        """Helper method to set text in the read-only output widget."""
+        self.output_text.config(state='normal')
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert("1.0", text)
+        self.output_text.config(state='disabled')
+    
     def convert_to_allman(self):
         """Convert input code to Allman style."""
         try:
             input_code = self.input_text.get("1.0", tk.END)
             output_code = StyleConverter.to_allman(input_code)
-            self.output_text.delete("1.0", tk.END)
-            self.output_text.insert("1.0", output_code)
+            self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
     
@@ -195,8 +202,7 @@ class StyleConverterGUI:
         try:
             input_code = self.input_text.get("1.0", tk.END)
             output_code = StyleConverter.to_knr(input_code)
-            self.output_text.delete("1.0", tk.END)
-            self.output_text.insert("1.0", output_code)
+            self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
     
@@ -205,8 +211,7 @@ class StyleConverterGUI:
         try:
             input_code = self.input_text.get("1.0", tk.END)
             output_code = StyleConverter.remove_single_line_comments(input_code)
-            self.output_text.delete("1.0", tk.END)
-            self.output_text.insert("1.0", output_code)
+            self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -215,8 +220,7 @@ class StyleConverterGUI:
         try:
             input_code = self.input_text.get("1.0", tk.END)
             output_code = StyleConverter.remove_multi_line_comments(input_code)
-            self.output_text.delete("1.0", tk.END)
-            self.output_text.insert("1.0", output_code)
+            self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -225,15 +229,14 @@ class StyleConverterGUI:
         try:
             input_code = self.input_text.get("1.0", tk.END)
             output_code = StyleConverter.remove_all_comments(input_code)
-            self.output_text.delete("1.0", tk.END)
-            self.output_text.insert("1.0", output_code)
+            self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
     
     def clear_all(self):
         """Clear both input and output text areas."""
         self.input_text.delete("1.0", tk.END)
-        self.output_text.delete("1.0", tk.END)
+        self.set_output_text("")
         
     def copy_output(self):
         """Copy output text to clipboard."""
