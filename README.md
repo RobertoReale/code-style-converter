@@ -1,4 +1,4 @@
-# Code Style Converter
+# C Code Style Converter
 
 A Python GUI application that converts code between different brace styles (Allman and K&R). Built with tkinter, this tool provides an easy-to-use interface for developers who need to maintain consistent code formatting across projects.
 
