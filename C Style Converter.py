@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, BooleanVar
+from tkinter import scrolledtext, messagebox
 from typing import Optional
 import re
 
@@ -116,7 +116,7 @@ class StyleConverter:
             raise ValueError(f"Error removing all comments: {str(e)}")
 
     @staticmethod
-    def remove_braces_single_statements(code: str, include_comments: bool = False) -> str:
+    def remove_braces_single_statements(code: str) -> str:
         """Remove curly braces from single non-blocking statements."""
         try:
             lines = code.split('\n')
@@ -147,7 +147,7 @@ class StyleConverter:
                                 body_lines.append(line)
                             j += 1
                         
-                        # If there's only one statement (excluding comments)
+                        # If there's only one non-comment statement
                         code_lines = [line for line in body_lines if not line.strip().startswith('//') 
                                     and not line.strip().startswith('/*') 
                                     and not line.strip().startswith('*')
@@ -155,17 +155,7 @@ class StyleConverter:
                         
                         if len(code_lines) == 1:
                             result_lines.append(base_line)
-                            
-                            if include_comments:
-                                # Include comments with proper indentation
-                                for line in body_lines:
-                                    if line.strip().startswith(('/*', '//', '*')):
-                                        result_lines.append(line)
-                            
-                            # Add the actual statement
-                            for line in code_lines:
-                                result_lines.append(line)
-                            
+                            result_lines.append(code_lines[0])
                             i = j  # Skip to after the closing brace
                             continue
                             
@@ -192,7 +182,7 @@ class StyleConverter:
                                 body_lines.append(line)
                             j += 1
                         
-                        # If there's only one statement (excluding comments)
+                        # If there's only one non-comment statement
                         code_lines = [line for line in body_lines if not line.strip().startswith('//') 
                                     and not line.strip().startswith('/*') 
                                     and not line.strip().startswith('*')
@@ -200,17 +190,7 @@ class StyleConverter:
                         
                         if len(code_lines) == 1:
                             result_lines.append(current_line)
-                            
-                            if include_comments:
-                                # Include comments with proper indentation
-                                for line in body_lines:
-                                    if line.strip().startswith(('/*', '//', '*')):
-                                        result_lines.append(line)
-                            
-                            # Add the actual statement
-                            for line in code_lines:
-                                result_lines.append(line)
-                            
+                            result_lines.append(code_lines[0])
                             i = j  # Skip to after the closing brace
                             continue
                 
@@ -253,10 +233,6 @@ class StyleConverterGUI:
         # Brace removal frame
         brace_frame = tk.Frame(main_frame)
         brace_frame.pack(pady=5)
-        
-        self.include_comments = BooleanVar()
-        tk.Checkbutton(brace_frame, text="Keep comments when removing braces", 
-                      variable=self.include_comments).pack(side=tk.LEFT, padx=5)
         
         tk.Button(brace_frame, text="Remove Single Statement Braces", 
                 command=self.remove_single_braces).pack(side=tk.LEFT, padx=5)
@@ -355,10 +331,7 @@ class StyleConverterGUI:
         """Remove curly braces from single non-blocking statements."""
         try:
             input_code = self.input_text.get("1.0", tk.END)
-            output_code = StyleConverter.remove_braces_single_statements(
-                input_code, 
-                self.include_comments.get()
-            )
+            output_code = StyleConverter.remove_braces_single_statements(input_code)
             self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
