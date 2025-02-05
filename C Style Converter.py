@@ -703,13 +703,6 @@ def main():
     root = tk.Tk()
     root.title("Code Style Converter")
     
-    # Set theme
-    style = ttk.Style()
-    try:
-        style.theme_use('clam')  # Use clam theme for better looking widgets
-    except tk.TclError:
-        pass  # Fall back to default theme if clam is not available
-    
     app = StyleConverterGUI(root)
     
     # Center the window
