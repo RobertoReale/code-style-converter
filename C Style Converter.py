@@ -127,60 +127,92 @@ class StyleConverter:
                 current_line = lines[i].rstrip()
                 
                 # Check for control statements (if, for, while) followed by braces
-                if (re.search(r'\b(if|for|while)\s*\([^)]*\)\s*$', current_line) and 
-                    i + 1 < len(lines) and
-                    '{' in lines[i + 1].strip()):
-                    
-                    # Get the indentation of the control statement
-                    base_indent = len(current_line) - len(current_line.lstrip())
-                    
-                    # Skip the opening brace line if it's on its own line (Allman style)
-                    if lines[i + 1].strip() == '{':
+                if re.search(r'\b(if|for|while)\s*\([^)]*\)', current_line):
+                    # Handle K&R style (brace on same line)
+                    if current_line.rstrip().endswith('{'):
+                        base_line = current_line.rstrip()[:-1].rstrip()
+                        
+                        # Collect all lines between braces
+                        body_lines = []
+                        brace_count = 1
+                        j = i + 1
+                        
+                        while j < len(lines) and brace_count > 0:
+                            line = lines[j]
+                            if '{' in line:
+                                brace_count += 1
+                            if '}' in line:
+                                brace_count -= 1
+                            if brace_count > 0:
+                                body_lines.append(line)
+                            j += 1
+                        
+                        # If there's only one statement (excluding comments)
+                        code_lines = [line for line in body_lines if not line.strip().startswith('//') 
+                                    and not line.strip().startswith('/*') 
+                                    and not line.strip().startswith('*')
+                                    and line.strip()]
+                        
+                        if len(code_lines) == 1:
+                            result_lines.append(base_line)
+                            
+                            if include_comments:
+                                # Include comments with proper indentation
+                                for line in body_lines:
+                                    if line.strip().startswith(('/*', '//', '*')):
+                                        result_lines.append(line)
+                            
+                            # Add the actual statement
+                            for line in code_lines:
+                                result_lines.append(line)
+                            
+                            i = j  # Skip to after the closing brace
+                            continue
+                            
+                    # Handle Allman style (brace on next line)
+                    elif i + 1 < len(lines) and lines[i + 1].strip() == '{':
+                        # Get the indentation of the control statement
+                        base_indent = len(current_line) - len(current_line.lstrip())
+                        
+                        # Skip the opening brace line
                         i += 1
-                    else:
-                        # For K&R style, remove the brace from the current line
-                        current_line = current_line.rstrip().rstrip('{').rstrip()
-                        result_lines.append(current_line)
-                        i += 1
-                        continue
-                    
-                    # Collect all lines between braces
-                    body_lines = []
-                    brace_count = 1
-                    j = i + 1
-                    
-                    while j < len(lines) and brace_count > 0:
-                        line = lines[j]
-                        if '{' in line:
-                            brace_count += 1
-                        if '}' in line:
-                            brace_count -= 1
-                        if brace_count > 0:
-                            body_lines.append(line)
-                        j += 1
-                    
-                    # If there's only one statement (excluding comments)
-                    code_lines = [line for line in body_lines if not line.strip().startswith('//') 
-                                and not line.strip().startswith('/*') 
-                                and not line.strip().startswith('*')
-                                and line.strip()]
-                    
-                    if len(code_lines) == 1:
-                        if not result_lines or result_lines[-1] != current_line:
+                        
+                        # Collect all lines between braces
+                        body_lines = []
+                        brace_count = 1
+                        j = i + 1
+                        
+                        while j < len(lines) and brace_count > 0:
+                            line = lines[j]
+                            if '{' in line:
+                                brace_count += 1
+                            if '}' in line:
+                                brace_count -= 1
+                            if brace_count > 0:
+                                body_lines.append(line)
+                            j += 1
+                        
+                        # If there's only one statement (excluding comments)
+                        code_lines = [line for line in body_lines if not line.strip().startswith('//') 
+                                    and not line.strip().startswith('/*') 
+                                    and not line.strip().startswith('*')
+                                    and line.strip()]
+                        
+                        if len(code_lines) == 1:
                             result_lines.append(current_line)
-                        
-                        if include_comments:
-                            # Include comments with proper indentation
-                            for line in body_lines:
-                                if line.strip().startswith(('/*', '//', '*')):
-                                    result_lines.append(line)
-                        
-                        # Add the actual statement
-                        for line in code_lines:
-                            result_lines.append(line)
-                        
-                        i = j  # Skip to after the closing brace
-                        continue
+                            
+                            if include_comments:
+                                # Include comments with proper indentation
+                                for line in body_lines:
+                                    if line.strip().startswith(('/*', '//', '*')):
+                                        result_lines.append(line)
+                            
+                            # Add the actual statement
+                            for line in code_lines:
+                                result_lines.append(line)
+                            
+                            i = j  # Skip to after the closing brace
+                            continue
                 
                 result_lines.append(current_line)
                 i += 1
