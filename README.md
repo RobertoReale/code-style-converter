@@ -30,12 +30,14 @@ C Code Style Converter is a Python-based desktop application that helps develope
 - `Ctrl + R`: Remove all comments
 - `Ctrl + L`: Clear all panels
 - `Ctrl + C`: Copy output to clipboard
+- `Ctrl + B`: Remove single statement braces
 
 ## Requirements
 
 - Python 3.6 or higher
 - tkinter (usually comes with Python)
 - typing module
+- re
 
 ## Installation
 
