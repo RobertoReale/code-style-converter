@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
+from tkinter import scrolledtext, messagebox, BooleanVar
 from typing import Optional
 import re
 
@@ -115,6 +115,81 @@ class StyleConverter:
         except Exception as e:
             raise ValueError(f"Error removing all comments: {str(e)}")
 
+    @staticmethod
+    def remove_braces_single_statements(code: str, include_comments: bool = False) -> str:
+        """Remove curly braces from single non-blocking statements."""
+        try:
+            lines = code.split('\n')
+            result_lines = []
+            i = 0
+            
+            while i < len(lines):
+                current_line = lines[i].rstrip()
+                
+                # Check for control statements (if, for, while) followed by braces
+                if (re.search(r'\b(if|for|while)\s*\([^)]*\)\s*$', current_line) and 
+                    i + 1 < len(lines) and
+                    '{' in lines[i + 1].strip()):
+                    
+                    # Get the indentation of the control statement
+                    base_indent = len(current_line) - len(current_line.lstrip())
+                    
+                    # Skip the opening brace line if it's on its own line (Allman style)
+                    if lines[i + 1].strip() == '{':
+                        i += 1
+                    else:
+                        # For K&R style, remove the brace from the current line
+                        current_line = current_line.rstrip().rstrip('{').rstrip()
+                        result_lines.append(current_line)
+                        i += 1
+                        continue
+                    
+                    # Collect all lines between braces
+                    body_lines = []
+                    brace_count = 1
+                    j = i + 1
+                    
+                    while j < len(lines) and brace_count > 0:
+                        line = lines[j]
+                        if '{' in line:
+                            brace_count += 1
+                        if '}' in line:
+                            brace_count -= 1
+                        if brace_count > 0:
+                            body_lines.append(line)
+                        j += 1
+                    
+                    # If there's only one statement (excluding comments)
+                    code_lines = [line for line in body_lines if not line.strip().startswith('//') 
+                                and not line.strip().startswith('/*') 
+                                and not line.strip().startswith('*')
+                                and line.strip()]
+                    
+                    if len(code_lines) == 1:
+                        if not result_lines or result_lines[-1] != current_line:
+                            result_lines.append(current_line)
+                        
+                        if include_comments:
+                            # Include comments with proper indentation
+                            for line in body_lines:
+                                if line.strip().startswith(('/*', '//', '*')):
+                                    result_lines.append(line)
+                        
+                        # Add the actual statement
+                        for line in code_lines:
+                            result_lines.append(line)
+                        
+                        i = j  # Skip to after the closing brace
+                        continue
+                
+                result_lines.append(current_line)
+                i += 1
+            
+            return '\n'.join(result_lines)
+            
+        except Exception as e:
+            raise ValueError(f"Error removing braces: {str(e)}")
+
 class StyleConverterGUI:
     def __init__(self, root):
         self.root = root
@@ -143,6 +218,17 @@ class StyleConverterGUI:
         tk.Button(style_button_frame, text="Convert to K&R", 
                 command=self.convert_to_knr).pack(side=tk.LEFT, padx=5)
 
+        # Brace removal frame
+        brace_frame = tk.Frame(main_frame)
+        brace_frame.pack(pady=5)
+        
+        self.include_comments = BooleanVar()
+        tk.Checkbutton(brace_frame, text="Keep comments when removing braces", 
+                      variable=self.include_comments).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(brace_frame, text="Remove Single Statement Braces", 
+                command=self.remove_single_braces).pack(side=tk.LEFT, padx=5)
+
         # Comment removal buttons frame
         comment_button_frame = tk.Frame(main_frame)
         comment_button_frame.pack(pady=5)
@@ -165,7 +251,6 @@ class StyleConverterGUI:
         
         tk.Label(main_frame, text="Output Code:").pack(anchor=tk.W)
         
-        # Create output text widget with state='disabled' to make it read-only
         self.output_text = scrolledtext.ScrolledText(
             main_frame, width=80, height=15, wrap=tk.NONE,
             font=('Courier', 10), state='disabled'
@@ -180,6 +265,7 @@ class StyleConverterGUI:
         self.root.bind('<Control-s>', lambda e: self.remove_single_comments())
         self.root.bind('<Control-m>', lambda e: self.remove_multi_comments())
         self.root.bind('<Control-r>', lambda e: self.remove_all_comments())
+        self.root.bind('<Control-b>', lambda e: self.remove_single_braces())
     
     def set_output_text(self, text: str):
         """Helper method to set text in the read-only output widget."""
@@ -229,6 +315,18 @@ class StyleConverterGUI:
         try:
             input_code = self.input_text.get("1.0", tk.END)
             output_code = StyleConverter.remove_all_comments(input_code)
+            self.set_output_text(output_code)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+    
+    def remove_single_braces(self):
+        """Remove curly braces from single non-blocking statements."""
+        try:
+            input_code = self.input_text.get("1.0", tk.END)
+            output_code = StyleConverter.remove_braces_single_statements(
+                input_code, 
+                self.include_comments.get()
+            )
             self.set_output_text(output_code)
         except Exception as e:
             messagebox.showerror("Error", str(e))
