@@ -583,7 +583,7 @@ class StyleConverterGUI:
         self.root.bind('<Control-Alt-s>', lambda e: self.remove_single_comments())
         self.root.bind('<Control-Alt-m>', lambda e: self.remove_multi_comments())
         self.root.bind('<Control-Alt-r>', lambda e: self.remove_all_comments())
-        self.root.bind('<Control-Alt-b>', lambda e: self.remove_single_braces())
+        self.root.bind('<Control-Alt-b>', lambda e: self.remove_unnecessary_braces())
         self.root.bind('<Control-Alt-l>', lambda e: self.clear_all())
         self.root.bind('<Control-Alt-c>', lambda e: self.copy_output())
 
