@@ -69,6 +69,7 @@ class StyleConverter:
     def to_allman(code: str) -> str:
         """
         Convert code to Allman style while preserving indentation and handling comments.
+        Handles struct definitions and other special cases.
         
         Args:
             code: Input code string
@@ -85,6 +86,79 @@ class StyleConverter:
                 line = lines[i]
                 indent = len(line) - len(line.lstrip())
                 stripped = line.lstrip()
+                
+                # Handle struct/union/enum definitions with inline braces
+                if re.search(r'^\s*(typedef\s+)?(struct|union|enum)\s+\w*\s*({|\s*$)', stripped):
+                    # Extract the base part before any brace
+                    base_match = re.match(r'^(\s*(?:typedef\s+)?(?:struct|union|enum)\s+\w*)', line)
+                    if base_match:
+                        base_part = base_match.group(1)
+                        
+                        # Find the opening brace position
+                        brace_pos = line.find('{')
+                        
+                        if brace_pos == -1:
+                            # Check next line for brace
+                            if i + 1 < len(lines) and '{' in lines[i + 1]:
+                                formatted_lines.append(base_part)
+                                i += 1
+                                line = lines[i]
+                                brace_pos = line.find('{')
+                            else:
+                                formatted_lines.append(line)
+                                i += 1
+                                continue
+                        else:
+                            # Add the base part without the brace
+                            formatted_lines.append(base_part)
+                        
+                        # Add the opening brace on its own line
+                        formatted_lines.append(' ' * indent + '{')
+                        
+                        # Process struct members
+                        current_line = line[brace_pos + 1:]
+                        closing_brace_pos = current_line.find('}')
+                        
+                        if closing_brace_pos != -1:
+                            # Single line struct definition
+                            members = current_line[:closing_brace_pos].strip()
+                            if members:
+                                # Split members by semicolon and format each
+                                for member in members.split(';'):
+                                    if member.strip():
+                                        formatted_lines.append(' ' * (indent + 4) + member.strip() + ';')
+                            
+                            # Add closing brace and any remaining content
+                            remaining = current_line[closing_brace_pos:].strip()
+                            formatted_lines.append(' ' * indent + '}' + 
+                                                (' ' + remaining if remaining else ''))
+                        else:
+                            # Multi-line struct definition
+                            # Process the rest of the current line if not empty
+                            if current_line.strip():
+                                formatted_lines.append(' ' * (indent + 4) + current_line.strip())
+                            
+                            # Process subsequent lines until closing brace
+                            i += 1
+                            while i < len(lines):
+                                line = lines[i]
+                                if '}' in line:
+                                    # Handle closing brace line
+                                    parts = line.split('}', 1)
+                                    if parts[0].strip():
+                                        formatted_lines.append(' ' * (indent + 4) + parts[0].strip())
+                                    formatted_lines.append(' ' * indent + '}' + 
+                                                        (' ' + parts[1].strip() if parts[1].strip() else ''))
+                                    break
+                                else:
+                                    # Regular member line
+                                    stripped_line = line.strip()
+                                    if stripped_line:
+                                        formatted_lines.append(' ' * (indent + 4) + stripped_line)
+                                i += 1
+                        
+                        i += 1
+                        continue
                 
                 # Handle control statements without braces
                 if (re.search(r'\b(if|for|while)\s*\([^)]*\)', stripped) and 
